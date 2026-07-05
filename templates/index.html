@@ -1,1 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gmail Buddy V1.1</title>
+<link rel="icon" type="image/png" href="/static/logo.png">
+<link rel="shortcut icon" href="/static/logo.png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#1a1a2e;color:#eee;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#top-bar{background:#0f3460;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #1a4a80}
+#top-bar h1{font-size:15px;color:#e94560;white-space:nowrap}
+#top-bar h1 span{font-size:11px;color:#aaa;margin-left:6px}
+.top-stats{display:flex;gap:16px;font-size:12px;color:#aaa}
+.top-stats b{color:#eee}
+.top-btn{color:white;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:12px}
+#sync-btn{background:#e94560}
+#settings-top-btn{background:#333;border:1px solid #555}
+.top-btn:disabled{background:#555!important;cursor:not-allowed}
+#sync-wrap{display:flex;align-items:center;gap:8px}
+#sync-prog{display:none;flex-direction:column;align-items:flex-end;gap:3px}
+#sync-prog-txt{font-size:11px;color:#aaa}
+#spb-wrap{width:150px;height:5px;background:#1a4a80;border-radius:4px;overflow:hidden}
+#spb{height:100%;background:#e94560;width:0%;transition:width .5s}
+#tabs{display:flex;background:#16213e;border-bottom:2px solid #0f3460}
+.tab{padding:12px 20px;cursor:pointer;font-size:13px;color:#aaa;border-bottom:3px solid transparent}
+.tab:hover{color:#eee;background:#0f3460}
+.tab.active{color:#eee;border-bottom:3px solid #e94560;background:#1a1a2e}
+#content{display:flex;flex:1;overflow:hidden}
+#tab-inbox{display:flex;flex:1;overflow:hidden}
+#tab-ai,#tab-settings,#tab-log{display:none;flex:1;flex-direction:column;overflow:hidden}
+#sidebar{width:360px;min-width:360px;background:#16213e;display:flex;flex-direction:column;border-right:1px solid #0f3460}
+#stats-bar{display:flex;gap:12px;padding:8px 16px;background:#0f3460;font-size:12px;color:#aaa}
+#stats-bar b{color:#eee}
+#search-wrap{padding:10px 16px;background:#1a1a2e;border-bottom:1px solid #0f3460}
+#search-wrap input{width:100%;padding:8px 12px;border-radius:6px;border:1px solid #0f3460;background:#16213e;color:#eee;font-size:13px}
+#filter-bar{display:flex;gap:6px;padding:8px 16px;background:#1a1a2e;border-bottom:1px solid #0f3460;flex-wrap:wrap}
+.fbtn{padding:4px 10px;border-radius:20px;border:none;cursor:pointer;font-size:11px}
+.fbtn.all{background:#0f3460;color:#eee}
+.fbtn.delete{background:#e94560;color:white}
+.fbtn.check{background:#f5a623;color:white}
+.fbtn.keep{background:#27ae60;color:white}
+.fbtn.unchecked{background:#444;color:#eee}
+.fbtn.active{outline:2px solid white}
+#bulk-bar{display:none;padding:8px 16px;background:#1a2a4a;border-bottom:1px solid #0f3460;gap:6px;align-items:center;flex-wrap:wrap}
+#bulk-bar.show{display:flex}
+#bulk-count{font-size:11px;color:#aaa;flex:1}
+.bbtn{padding:5px 10px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap}
+.b-red{background:#e94560;color:white}
+.b-yellow{background:#f5a623;color:white}
+.b-green{background:#27ae60;color:white}
+.b-gray{background:#555;color:white}
+.b-danger{background:#c0392b;color:white}
+#senders-list{flex:1;overflow-y:auto}
+.si{padding:10px 16px;border-bottom:1px solid #0f3460;display:flex;align-items:center;gap:8px;transition:background .2s}
+.si:hover{background:#0f3460}
+.si.active{background:#0f3460;border-left:3px solid #e94560}
+.si.sel{background:#1a2a4a}
+.si-check{width:14px;height:14px;cursor:pointer;flex-shrink:0;accent-color:#e94560}
+.si-body{flex:1;min-width:0;cursor:pointer}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.dot.delete{background:#e94560}
+.dot.check{background:#f5a623}
+.dot.keep{background:#27ae60}
+.dot.unchecked{background:#555}
+.sname{font-size:13px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.semail{font-size:11px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scount{font-size:11px;color:#aaa;flex-shrink:0;cursor:pointer}
+.ubadge{background:#e94560;color:white;border-radius:10px;padding:1px 6px;font-size:10px;flex-shrink:0}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#empty-state{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:#555;font-size:14px}
+#empty-state .icon{font-size:48px}
+.mhdr{padding:14px 20px;background:#16213e;border-bottom:1px solid #0f3460;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.abtns{display:flex;gap:6px;flex-wrap:wrap}
+.abtn{padding:6px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px}
+.abtn:hover{opacity:.85}
+.a-green{background:#27ae60;color:white}
+.a-yellow{background:#f5a623;color:white}
+.a-red{background:#e94560;color:white}
+.a-gray{background:#333;color:white;border:1px solid #555}
+#emails-list{flex:1;overflow-y:auto;padding:10px 20px}
+.ei{padding:12px;border-radius:8px;margin-bottom:8px;background:#16213e;border:1px solid #0f3460}
+.ei.unread{border-left:3px solid #e94560}
+.esubj{font-size:13px;font-weight:bold;margin-bottom:4px}
+.edate{font-size:11px;color:#aaa;margin-bottom:6px}
+.esnip{font-size:12px;color:#bbb;line-height:1.5}
+#ai-hdr{padding:16px 24px;background:#16213e;border-bottom:1px solid #0f3460;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#ai-hdr h2{font-size:15px;color:#7c3aed}
+#ai-hdr p{font-size:12px;color:#aaa;margin-top:4px}
+#ai-ctrl{display:flex;align-items:center;gap:8px}
+#ai-limit{padding:8px 12px;border-radius:6px;border:1px solid #0f3460;background:#1a1a2e;color:#eee;font-size:12px}
+#ai-run-btn{background:#7c3aed;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px}
+#ai-cancel-btn{background:#555;color:white;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:13px;display:none}
+#ai-run-btn:disabled{background:#555;cursor:not-allowed}
+#ai-prog-sec{padding:12px 24px;background:#1a1a2e;border-bottom:1px solid #0f3460;display:none}
+#ai-prog-wrap{background:#0f3460;border-radius:8px;height:8px;margin:8px 0;overflow:hidden}
+#ai-prog-bar{background:#7c3aed;height:100%;width:0%;transition:width .3s}
+#ai-prog-txt{font-size:12px;color:#aaa}
+#ai-results{flex:1;overflow-y:auto;padding:16px 24px}
+.air{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;margin-bottom:8px;background:#16213e;border:1px solid #0f3460}
+.air-info{flex:1;min-width:0}
+.aicat{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:bold;flex-shrink:0}
+.aicat.delete{background:#e94560;color:white}
+.aicat.keep{background:#27ae60;color:white}
+.aicat.check{background:#f5a623;color:white}
+.air-apply{padding:4px 10px;border-radius:6px;border:none;cursor:pointer;font-size:11px;background:#0f3460;color:#eee;flex-shrink:0}
+.air-apply:hover{background:#7c3aed}
+#tab-settings{overflow-y:auto;padding:24px}
+#tab-settings h2{font-size:16px;color:#e94560;margin-bottom:20px}
+.ssec{background:#16213e;border-radius:10px;padding:20px;margin-bottom:16px;border:1px solid #0f3460}
+.ssec h3{font-size:12px;color:#7c3aed;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}
+.srow{margin-bottom:14px}
+.srow label{display:block;font-size:12px;color:#aaa;margin-bottom:6px}
+.srow input,.srow select{width:100%;padding:9px 12px;border-radius:6px;border:1px solid #0f3460;background:#1a1a2e;color:#eee;font-size:13px}
+.hint{font-size:11px;color:#555;margin-top:4px}
+.akwrap{display:flex;gap:8px}
+.akwrap input{flex:1}
+.sbtn{padding:9px 14px;border-radius:6px;border:1px solid #0f3460;background:#333;color:#eee;cursor:pointer;font-size:12px;white-space:nowrap}
+.tbtn{padding:9px 14px;border-radius:6px;border:none;background:#7c3aed;color:white;cursor:pointer;font-size:12px;white-space:nowrap}
+.tres{font-size:12px;margin-top:8px;padding:6px 10px;border-radius:4px;display:none}
+.tres.ok{background:#1a3a2a;color:#27ae60}
+.tres.err{background:#3a1a1a;color:#e94560}
+.save-btn{background:#e94560;color:white;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;margin-top:8px}
+#tab-log{padding:20px}
+#tab-log h2{font-size:15px;color:#e94560;margin-bottom:12px}
+#log-content{background:#0a0a1a;border-radius:8px;padding:16px;height:calc(100vh - 200px);overflow-y:auto;font-family:monospace;font-size:12px;color:#aaa;white-space:pre-wrap;border:1px solid #0f3460}
+.rbtn{background:#0f3460;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;margin-bottom:10px}
+#status-bar{padding:7px 16px;background:#0f3460;font-size:12px;color:#aaa;display:flex;align-items:center;gap:10px}
+.loading{text-align:center;padding:40px;color:#555}
+#modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:500;align-items:center;justify-content:center}
+#modal-overlay.show{display:flex}
+#modal-box{background:#16213e;border-radius:14px;padding:28px;width:420px;border:1px solid #0f3460;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+#modal-icon{font-size:36px;margin-bottom:12px}
+#modal-title{font-size:16px;font-weight:bold;margin-bottom:8px;color:#eee}
+#modal-msg{font-size:13px;color:#aaa;line-height:1.6;margin-bottom:20px}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end}
+.modal-cancel{background:#333;color:#eee;border:1px solid #555;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:13px}
+.modal-ok{padding:9px 20px;border-radius:8px;cursor:pointer;font-size:13px;border:none;font-weight:bold}
+.modal-ok.danger{background:#e94560;color:white}
+.modal-ok.warning{background:#c0392b;color:white}
+</style>
+</head>
+<body>
 
+<div id="top-bar">
+  <h1><img src="/static/logo.png" style="height:32px;vertical-align:middle;margin-right:8px;border-radius:6px"> <span style="color:#fff;font-size:16px;font-weight:bold">Gmail<span style="color:#38bdf8">Buddy</span></span> <span>V1.1</span></h1>
+  <div class="top-stats">
+    <div>Total: <b id="st-total">0</b></div>
+    <div>Unread: <b id="st-unread" style="color:#e94560">0</b></div>
+    <div>🔴 <b id="st-del">0</b></div>
+    <div>🟡 <b id="st-chk">0</b></div>
+    <div>🟢 <b id="st-keep">0</b></div>
+  </div>
+  <div id="sync-wrap">
+    <div id="sync-prog">
+      <div id="sync-prog-txt">Syncing...</div>
+      <div id="spb-wrap"><div id="spb"></div></div>
+    </div>
+    <button class="top-btn" id="settings-top-btn" onclick="goTab('settings',2)">⚙️ Settings</button>
+    <button class="top-btn" id="sync-btn" onclick="syncEmails()">🔄 Sync</button>
+  </div>
+</div>
+
+<div id="tabs">
+  <div class="tab active" onclick="goTab('inbox',0)">📬 Inbox Manager</div>
+  <div class="tab" onclick="goTab('ai',1)">🤖 AI Categorizer</div>
+  <div class="tab" onclick="goTab('settings',2)">⚙️ Settings</div>
+  <div class="tab" onclick="goTab('log',3)">📋 Error Log</div>
+</div>
+
+<div id="content">
+  <div id="tab-inbox">
+    <div id="sidebar">
+      <div id="stats-bar">
+        <div>🔴 <b id="sb-del">0</b></div>
+        <div>🟡 <b id="sb-chk">0</b></div>
+        <div>🟢 <b id="sb-keep">0</b></div>
+        <div>⚪ <b id="sb-unc">0</b></div>
+      </div>
+      <div id="search-wrap">
+        <input type="text" id="search-inp" placeholder="Search senders..." oninput="renderSenders()">
+      </div>
+      <div id="filter-bar">
+        <button class="fbtn all active" onclick="setFilter('all',this)">All</button>
+        <button class="fbtn unchecked" onclick="setFilter('unchecked',this)">⚪ Unchecked</button>
+        <button class="fbtn delete" onclick="setFilter('delete',this)">🔴 Delete</button>
+        <button class="fbtn check" onclick="setFilter('check',this)">🟡 Review</button>
+        <button class="fbtn keep" onclick="setFilter('keep',this)">🟢 Keep</button>
+      </div>
+      <div id="bulk-bar">
+        <span id="bulk-count">0 selected</span>
+        <button class="bbtn b-red" onclick="bulkMark('delete')">🔴 Mark Delete</button>
+        <button class="bbtn b-yellow" onclick="bulkMark('check')">🟡 Mark Review</button>
+        <button class="bbtn b-green" onclick="bulkMark('keep')">🟢 Mark Keep</button>
+        <button class="bbtn b-danger" onclick="bulkTrash()">🗑️ Trash</button>
+        <button class="bbtn" style="background:#8b0000;color:white" onclick="bulkDelete()">💀 Delete Forever</button>
+        <button class="bbtn b-gray" onclick="clearSel()">✕ Clear</button>
+      </div>
+      <div id="senders-list"><div class="loading">Click Sync to get started</div></div>
+    </div>
+    <div id="main">
+      <div id="empty-state"><div class="icon">📭</div><div>Select a sender to view emails</div></div>
+    </div>
+  </div>
+
+  <div id="tab-ai">
+    <div id="ai-hdr">
+      <div>
+        <h2>🤖 AI Smart Categorizer</h2>
+        <p>Gemini AI analyzes senders and suggests categories.</p>
+      </div>
+      <div id="ai-ctrl">
+        <select id="ai-limit">
+          <option value="20">20 senders</option>
+          <option value="50">50 senders</option>
+          <option value="100" selected>100 senders</option>
+          <option value="0">All senders</option>
+        </select>
+        <button id="ai-cancel-btn" onclick="aiCancelled=true">✕ Cancel</button>
+        <button id="ai-run-btn" onclick="runAI()">▶ Run AI Analysis</button>
+      </div>
+    </div>
+    <div id="ai-prog-sec">
+      <div id="ai-prog-txt">Processing...</div>
+      <div id="ai-prog-wrap"><div id="ai-prog-bar"></div></div>
+    </div>
+    <div id="ai-results"><div class="loading">Run AI Analysis to see suggestions</div></div>
+  </div>
+
+  <div id="tab-settings">
+    <h2>⚙️ Settings</h2>
+    <div class="ssec">
+      <h3>🤖 AI Configuration</h3>
+      <div class="srow">
+        <label>API Key</label>
+        <div class="akwrap">
+          <input type="password" id="set-apikey" placeholder="Paste your Gemini API key...">
+          <button class="sbtn" onclick="toggleKey()">Show</button>
+          <button class="tbtn" onclick="testConn()">Test</button>
+        </div>
+        <div class="hint">Get free key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#7c3aed">aistudio.google.com</a></div>
+        <div class="tres" id="test-res"></div>
+      </div>
+      <div class="srow">
+        <label>AI Model</label>
+        <select id="set-model">
+          <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & Free)</option>
+          <option value="gemini-1.5-pro">Gemini 1.5 Pro (Smarter)</option>
+        </select>
+      </div>
+    </div>
+    <div class="ssec">
+      <h3>👤 Gmail Accounts</h3>
+      <div id="accounts-list" style="margin-bottom:12px;font-size:13px;color:#aaa">Loading...</div>
+      <div style="display:flex;gap:10px">
+        <button class="tbtn" onclick="addAccount()">➕ Add Account</button>
+        <button class="sbtn" onclick="loadAccounts()">🔄 Refresh</button>
+      </div>
+      <div class="tres" id="acc-res" style="margin-top:8px"></div>
+    </div>
+    <div class="ssec">
+      <h3>📤 Export / Import Categories</h3>
+      <div style="display:flex;gap:10px">
+        <button class="tbtn" onclick="exportCats()">📤 Export</button>
+        <label class="tbtn" style="cursor:pointer">📥 Import<input type="file" id="imp-file" accept=".json" style="display:none" onchange="importCats(event)"></label>
+      </div>
+      <div class="tres" id="imp-res" style="margin-top:8px"></div>
+    </div>
+    <div class="ssec">
+      <h3>💾 Backup / Restore Database</h3>
+      <div style="display:flex;gap:10px">
+        <button class="tbtn" onclick="backupDB()">💾 Backup</button>
+        <label class="tbtn" style="cursor:pointer">🔄 Restore<input type="file" id="res-file" accept=".db" style="display:none" onchange="restoreDB(event)"></label>
+      </div>
+      <div class="tres" id="res-res" style="margin-top:8px"></div>
+    </div>
+    <div class="ssec">
+      <h3>🗑️ Trash</h3>
+      <button class="tbtn" onclick="emptyTrash()" style="background:#c0392b;padding:10px 20px">🗑️ Empty Trash</button>
+      <div class="hint" style="margin-top:8px">Permanently delete all emails in Gmail Trash</div>
+      <div class="tres" id="trash-res" style="margin-top:8px"></div>
+    </div>
+    <button class="save-btn" onclick="saveSettings()">💾 Save Settings</button>
+  </div>
+
+  <div id="tab-log">
+    <h2>📋 Error Log</h2>
+    <button class="rbtn" onclick="loadLog()">🔄 Refresh</button>
+    <div id="log-content">Loading...</div>
+  </div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div id="modal-icon">⚠️</div>
+    <div id="modal-title">Confirm</div>
+    <div id="modal-msg"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-ok danger" id="modal-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+<div id="status-bar">
+  <span id="status-txt">Ready</span>
+  <button id="undo-btn" onclick="doUndo()" style="display:none;background:#f5a623;color:white;border:none;padding:3px 12px;border-radius:4px;cursor:pointer;font-size:12px">↩️ Undo</button>
+</div>
+
+<script>
+let allSenders=[], curFilter='all', curSender=null, sel=new Set(), aiResults=[], aiCancelled=false, lastDeletedEmail=null, lastDeletedEmails=[];
+let cfg=JSON.parse(localStorage.getItem('gmailcfg')||'{}');
+
+function goTab(name,idx){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.getElementById('tab-inbox').style.display=name==='inbox'?'flex':'none';
+  document.getElementById('tab-ai').style.display=name==='ai'?'flex':'none';
+  document.getElementById('tab-settings').style.display=name==='settings'?'flex':'none';
+  document.getElementById('tab-log').style.display=name==='log'?'flex':'none';
+  if(name==='log') loadLog();
+  if(name==='settings') loadAccounts();
+}
+
+function showModal(icon, title, msg, btnText, btnClass, onOk){
+  document.getElementById('modal-icon').textContent=icon;
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-msg').textContent=msg;
+  const btn=document.getElementById('modal-ok');
+  btn.textContent=btnText;
+  btn.className='modal-ok '+btnClass;
+  btn.onclick=function(){closeModal();onOk();};
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('show');}
+
+function setStatus(msg){
+  const el=document.getElementById('status-txt');
+  if(el) el.textContent=msg;
+}
+function showUndo(){
+  const el=document.getElementById('undo-btn');
+  if(el){el.style.display='inline-block';el.style.visibility='visible';}
+}
+function hideUndo(){
+  const el=document.getElementById('undo-btn');
+  if(el) el.style.display='none';
+}
+
+async function syncEmails(){
+  const btn=document.getElementById('sync-btn');
+  const prog=document.getElementById('sync-prog');
+  const bar=document.getElementById('spb');
+  const txt=document.getElementById('sync-prog-txt');
+  btn.disabled=true;btn.textContent='⏳';
+  prog.style.display='flex';
+  let p=0;
+  const iv=setInterval(()=>{p=Math.min(p+2,88);bar.style.width=p+'%';txt.textContent=p+'%...';},600);
+  try{
+    const r=await fetch('/api/sync');
+    const d=await r.json();
+    clearInterval(iv);bar.style.width='100%';txt.textContent='Done!';
+    setTimeout(()=>{prog.style.display='none';bar.style.width='0%';},1500);
+    setStatus('✅ Synced '+d.count+' emails');
+    await loadSenders();
+  }catch(e){clearInterval(iv);prog.style.display='none';setStatus('❌ Sync failed');}
+  btn.disabled=false;btn.textContent='🔄 Sync';
+}
+
+async function loadSenders(){
+  const r=await fetch('/api/senders');
+  allSenders=await r.json();
+  updateStats();renderSenders();
+}
+
+function updateStats(){
+  let total=0,unread=0,del=0,chk=0,keep=0,unc=0;
+  allSenders.forEach(s=>{
+    total+=s.count;unread+=s.unread||0;
+    if(s.category==='delete') del+=s.count;
+    else if(s.category==='check') chk+=s.count;
+    else if(s.category==='keep') keep+=s.count;
+    else unc+=s.count;
+  });
+  document.getElementById('st-total').textContent=total;
+  document.getElementById('st-unread').textContent=unread;
+  document.getElementById('st-del').textContent=del;
+  document.getElementById('st-chk').textContent=chk;
+  document.getElementById('st-keep').textContent=keep;
+  document.getElementById('sb-del').textContent=del;
+  document.getElementById('sb-chk').textContent=chk;
+  document.getElementById('sb-keep').textContent=keep;
+  document.getElementById('sb-unc').textContent=unc;
+}
+
+function renderSenders(){
+  const q=document.getElementById('search-inp').value.toLowerCase();
+  const list=allSenders.filter(s=>{
+    const mf=curFilter==='all'||s.category===curFilter;
+    const ms=s.sender_email.includes(q)||(s.sender||'').toLowerCase().includes(q);
+    return mf&&ms;
+  });
+  const el=document.getElementById('senders-list');
+  if(!list.length){el.innerHTML='<div class="loading">No results</div>';return;}
+  el.innerHTML=list.map(s=>{
+    const email=s.sender_email;
+    return `<div class="si${curSender===email?' active':''}${sel.has(email)?' sel':''}" data-email="${email}">
+      <input type="checkbox" class="si-check" ${sel.has(email)?'checked':''} data-email="${email}">
+      <div class="dot ${s.category||'unchecked'}"></div>
+      <div class="si-body" data-email="${email}">
+        <div class="sname">${s.sender||email}</div>
+        <div class="semail">${email}</div>
+      </div>
+      ${s.unread>0?`<div class="ubadge">${s.unread}</div>`:''}
+      <div class="scount" data-email="${email}">${s.count}</div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.si-check').forEach(cb=>{
+    cb.addEventListener('change',function(e){
+      e.stopPropagation();
+      const email=this.dataset.email;
+      this.checked?sel.add(email):sel.delete(email);
+      this.closest('.si').classList.toggle('sel',this.checked);
+      updateBulkBar();
+    });
+  });
+
+  el.querySelectorAll('.si-body,.scount').forEach(el=>{
+    el.addEventListener('click',function(){
+      selectSender(this.dataset.email);
+    });
+  });
+}
+
+function updateBulkBar(){
+  const bar=document.getElementById('bulk-bar');
+  sel.size>0?bar.classList.add('show'):bar.classList.remove('show');
+  document.getElementById('bulk-count').textContent=sel.size+' selected';
+}
+
+function clearSel(){
+  sel.clear();
+  document.getElementById('bulk-bar').classList.remove('show');
+  document.querySelectorAll('.si').forEach(si=>{
+    si.classList.remove('sel');
+    const cb=si.querySelector('.si-check');
+    if(cb) cb.checked=false;
+  });
+}
+
+async function bulkMark(cat){
+  const emails=[...sel];
+  if(!emails.length) return;
+  for(const email of emails){
+    await fetch('/api/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,category:cat})});
+    const s=allSenders.find(x=>x.sender_email===email);if(s) s.category=cat;
+  }
+  setStatus('✅ '+emails.length+' senders marked as '+cat);
+  clearSel();updateStats();renderSenders();
+}
+
+async function bulkDelete(){
+  if(!sel.size) return;
+  await new Promise(resolve=>showModal('💀','Delete Forever','Permanently delete ALL emails from '+sel.size+' senders?\n\n⚠️ This CANNOT be undone!','Delete Forever','warning',resolve));
+  let deleted=0;
+  const emails=[...sel];
+  for(const email of emails){
+    const r=await fetch('/api/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json();deleted+=d.deleted||0;
+    allSenders=allSenders.filter(s=>s.sender_email!==email);
+  }
+  lastDeletedEmail=null;lastDeletedEmails=[];
+  curSender=null;
+  clearSel();updateStats();renderSenders();
+  hideUndo();
+  setStatus('✅ Permanently deleted '+deleted+' emails');
+  document.getElementById('main').innerHTML='<div id="empty-state"><div class="icon">📭</div><div>Select a sender</div></div>';
+}
+
+function setFilter(f,btn){
+  curFilter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');renderSenders();
+}
+
+async function selectSender(email){
+  curSender=email;
+  // auto-select checkbox
+  if(!sel.has(email)){
+    sel.add(email);
+    updateBulkBar();
+    renderSenders();
+  }
+  document.querySelectorAll('.si').forEach(el=>el.classList.toggle('active',el.dataset.email===email));
+  const s=allSenders.find(x=>x.sender_email===email);
+  const main=document.getElementById('main');
+  const cat=s?(s.category||'unchecked'):'unchecked';
+  const cl={delete:'🔴 Delete',check:'🟡 Review',keep:'🟢 Keep',unchecked:'⚪ Unchecked'};
+  main.innerHTML=`
+    <div class="mhdr">
+      <div>
+        <div style="font-size:15px;font-weight:bold">${s?(s.sender||email):email}</div>
+        <div style="color:#aaa;font-size:11px">${email} · ${cl[cat]}</div>
+      </div>
+      <div class="abtns">
+        <button class="abtn a-green" onclick="setCat('${email}','keep')">🟢 Keep</button>
+        <button class="abtn a-yellow" onclick="setCat('${email}','check')">🟡 Review</button>
+        <button class="abtn a-red" onclick="setCat('${email}','delete')">🔴 Mark Delete</button>
+        <button class="abtn a-gray" onclick="archiveSender('${email}')">📦 Archive</button>
+        <button class="abtn a-red" onclick="trashSender('${email}')">🗑️ Move to Trash</button>
+        <button class="abtn a-red" onclick="deleteSender('${email}')" style="background:#8b0000">💀 Delete Forever</button>
+      </div>
+    </div>
+    <div id="emails-list"><div class="loading">Loading...</div></div>
+    <div style="padding:7px 16px;background:#16213e;font-size:12px;color:#aaa;border-top:1px solid #0f3460">📊 ${s?s.count:0} emails · ${s?s.unread:0} unread</div>`;
+  const r=await fetch('/api/emails/'+encodeURIComponent(email));
+  const emails=await r.json();
+  const list=document.getElementById('emails-list');
+  if(!emails.length){list.innerHTML='<div class="loading">No emails</div>';return;}
+  list.innerHTML=emails.map(e=>`
+    <div class="ei ${e.is_read?'':'unread'}">
+      <div class="esubj">${e.subject}</div>
+      <div class="edate">${e.date}</div>
+      <div class="esnip">${e.snippet}</div>
+    </div>`).join('');
+}
+
+async function setCat(email,cat){
+  await fetch('/api/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,category:cat})});
+  const s=allSenders.find(x=>x.sender_email===email);if(s) s.category=cat;
+  updateStats();renderSenders();setStatus('✅ Category saved');selectSender(email);
+}
+
+async function trashSender(email){
+  await new Promise(resolve=>showModal('🗑️','Move to Trash','Move all emails from '+email+' to Trash?\nYou can Undo this action.','Move to Trash','danger',resolve));
+  setStatus('Moving to Trash...');hideUndo();
+  const r=await fetch('/api/trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+  const d=await r.json();
+  lastDeletedEmail=email;lastDeletedEmails=[email];
+  allSenders=allSenders.filter(s=>s.sender_email!==email);
+  curSender=null;
+  updateStats();renderSenders();
+  setStatus('✅ Moved '+d.trashed+' emails to Trash');
+  showUndo();
+  document.getElementById('main').innerHTML='<div id="empty-state"><div class="icon">📭</div><div>Select a sender</div></div>';
+}
+
+async function bulkTrash(){
+  if(!sel.size) return;
+  await new Promise(resolve=>showModal('🗑️','Move to Trash','Move emails from '+sel.size+' senders to Trash?\nYou can Undo this action.','Move to Trash','danger',resolve));
+  let total=0;
+  const emails=[...sel];
+  hideUndo();
+  for(const email of emails){
+    const r=await fetch('/api/trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json();total+=d.trashed||0;
+    allSenders=allSenders.filter(s=>s.sender_email!==email);
+  }
+  lastDeletedEmails=emails;lastDeletedEmail=emails[0];
+  curSender=null;
+  clearSel();updateStats();renderSenders();
+  setStatus('✅ Moved '+total+' emails to Trash');
+  showUndo();
+  document.getElementById('main').innerHTML='<div id="empty-state"><div class="icon">📭</div><div>Select a sender</div></div>';
+}
+
+async function emptyTrash(){
+  if(!confirm('Permanently delete ALL emails in Trash? Cannot be undone!')) return;
+  setStatus('Emptying Trash...');
+  const r=await fetch('/api/empty-trash',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+  const d=await r.json();
+  const el=document.getElementById('trash-res');
+  if(el){el.className='tres ok';el.style.display='block';el.textContent='✅ Trash emptied!';}
+  setStatus('✅ Trash emptied!');
+}
+
+async function deleteSender(email){
+  await new Promise(resolve=>showModal('💀','Delete Forever','Permanently delete ALL emails from '+email+'?\n\n⚠️ This CANNOT be undone!','Delete Forever','warning',resolve));
+  setStatus('Deleting...');
+  const r=await fetch('/api/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+  const d=await r.json();
+  lastDeletedEmail=null;lastDeletedEmails=[];
+  allSenders=allSenders.filter(s=>s.sender_email!==email);
+  curSender=null;
+  updateStats();renderSenders();
+  hideUndo();
+  setStatus('✅ Permanently deleted '+d.deleted+' emails');
+  document.getElementById('main').innerHTML='<div id="empty-state"><div class="icon">📭</div><div>Select a sender</div></div>';
+}
+
+async function archiveSender(email){
+  setStatus('Archiving...');
+  const r=await fetch('/api/archive',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+  const d=await r.json();
+  setStatus('✅ Archived '+d.archived+' emails');
+  allSenders=allSenders.filter(s=>s.sender_email!==email);
+  updateStats();renderSenders();
+}
+
+async function doUndo(){
+  const emails = lastDeletedEmails.length ? lastDeletedEmails : (lastDeletedEmail ? [lastDeletedEmail] : []);
+  if(!emails.length) return;
+  setStatus('Restoring...');hideUndo();
+  let total=0;
+  for(const email of emails){
+    const r=await fetch('/api/undo-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json();
+    if(d.status==='ok') total+=d.restored||0;
+  }
+  setStatus('✅ Restored '+total+' emails');
+  lastDeletedEmail=null;lastDeletedEmails=[];
+  await loadSenders();
+}
+
+async function runAI(){
+  if(!cfg.apiKey){alert('Please add your API key in Settings first.');goTab('settings',2);return;}
+  const limit=parseInt(document.getElementById('ai-limit').value);
+  let unc=allSenders.filter(s=>!s.category||s.category==='unchecked');
+  if(limit>0) unc=unc.slice(0,limit);
+  if(!unc.length){document.getElementById('ai-results').innerHTML='<div class="loading">All senders already categorized!</div>';return;}
+  aiCancelled=false;
+  document.getElementById('ai-run-btn').disabled=true;
+  document.getElementById('ai-cancel-btn').style.display='block';
+  document.getElementById('ai-prog-sec').style.display='block';
+  document.getElementById('ai-results').innerHTML='<div class="loading">Processing...</div>';
+  aiResults=[];
+  const bs=20;let done=0;
+  for(let i=0;i<unc.length;i+=bs){
+    if(aiCancelled){setStatus('⚠️ Cancelled');break;}
+    const batch=unc.slice(i,i+bs);
+    try{
+      const r=await fetch('/api/ai-categorize',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({senders:batch.map(s=>({email:s.sender_email,sender:s.sender,count:s.count})),
+          apiKey:cfg.apiKey,model:cfg.model||'gemini-2.0-flash',provider:'gemini'})});
+      const d=await r.json();
+      if(d.error){setStatus('❌ AI Error: '+d.error);break;}
+      if(d.results) aiResults.push(...d.results);
+    }catch(e){console.error(e);}
+    done+=batch.length;
+    document.getElementById('ai-prog-bar').style.width=Math.round(done/unc.length*100)+'%';
+    document.getElementById('ai-prog-txt').textContent='Processed '+done+' of '+unc.length+'...';
+  }
+  document.getElementById('ai-run-btn').disabled=false;
+  document.getElementById('ai-cancel-btn').style.display='none';
+  renderAIResults();
+}
+
+function renderAIResults(){
+  const el=document.getElementById('ai-results');
+  if(!aiResults.length){el.innerHTML='<div class="loading">No results</div>';return;}
+  const cl={delete:'🔴 Delete',check:'🟡 Review',keep:'🟢 Keep'};
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:13px;color:#aaa">${aiResults.length} senders analyzed</div>
+      <button class="tbtn" onclick="applyAll()" style="padding:8px 20px">✅ Apply All</button>
+    </div>
+    ${aiResults.map(r=>{
+      const s=allSenders.find(x=>x.sender_email===r.email);
+      return `<div class="air">
+        <div class="air-info"><div class="sname">${s?(s.sender||r.email):r.email}</div><div class="semail">${r.email}</div></div>
+        <div class="aicat ${r.category}">${cl[r.category]||r.category}</div>
+        <button class="air-apply" onclick="applyOne('${r.email}','${r.category}',this)">Apply</button>
+      </div>`;}).join('')}`;
+}
+
+async function applyOne(email,cat,btn){
+  await fetch('/api/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,category:cat})});
+  const s=allSenders.find(x=>x.sender_email===email);if(s) s.category=cat;
+  btn.textContent='✅';btn.disabled=true;updateStats();
+}
+
+async function applyAll(){
+  if(!confirm('Apply all AI suggestions?')) return;
+  for(const r of aiResults){
+    await fetch('/api/category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:r.email,category:r.category})});
+    const s=allSenders.find(x=>x.sender_email===r.email);if(s) s.category=r.category;
+  }
+  updateStats();renderSenders();setStatus('✅ All suggestions applied!');
+  document.querySelectorAll('.air-apply').forEach(b=>{b.textContent='✅';b.disabled=true;});
+}
+
+function toggleKey(){const i=document.getElementById('set-apikey');i.type=i.type==='password'?'text':'password';}
+
+async function testConn(){
+  const key=document.getElementById('set-apikey').value;
+  const model=document.getElementById('set-model').value;
+  const res=document.getElementById('test-res');
+  res.style.display='block';res.className='tres';res.textContent='Testing...';
+  const r=await fetch('/api/test-connection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,model})});
+  const d=await r.json();
+  res.className='tres '+(d.status==='ok'?'ok':'err');
+  res.textContent=d.status==='ok'?'✅ '+d.message:'❌ '+d.message;
+}
+
+function saveSettings(){
+  cfg.apiKey=document.getElementById('set-apikey').value;
+  cfg.model=document.getElementById('set-model').value;
+  localStorage.setItem('gmailcfg',JSON.stringify(cfg));
+  setStatus('✅ Settings saved');
+}
+
+function loadSettingsUI(){
+  document.getElementById('set-apikey').value=cfg.apiKey||'';
+  document.getElementById('set-model').value=cfg.model||'gemini-2.0-flash';
+}
+
+async function loadAccounts(){
+  const r=await fetch('/api/accounts');
+  const accs=await r.json();
+  const el=document.getElementById('accounts-list');
+  if(!accs.length){el.textContent='No accounts found.';return;}
+  el.innerHTML=accs.map(a=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#1a1a2e;border-radius:6px;margin-bottom:6px">
+      <span>👤 ${a.name}</span>
+      <button class="sbtn" onclick="switchAcc('${a.file}')" style="padding:4px 10px;font-size:11px">Use This</button>
+    </div>`).join('');
+}
+
+async function switchAcc(f){
+  const r=await fetch('/api/switch-account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token_file:f})});
+  const d=await r.json();
+  const el=document.getElementById('acc-res');
+  el.style.display='block';el.className='tres '+(d.status==='ok'?'ok':'err');
+  el.textContent=d.status==='ok'?'✅ '+d.message:'❌ '+d.error;
+}
+
+async function addAccount(){
+  const el=document.getElementById('acc-res');
+  el.className='tres ok';el.style.display='block';el.textContent='Opening browser...';
+  const r=await fetch('/api/add-account');
+  const d=await r.json();
+  el.className='tres '+(d.status==='ok'?'ok':'err');
+  el.textContent=d.status==='ok'?'✅ '+d.message:'❌ '+d.error;
+  if(d.status==='ok') await loadAccounts();
+}
+
+async function exportCats(){
+  const r=await fetch('/api/export-categories');
+  const d=await r.json();
+  if(d.error){alert('Export failed: '+d.error);return;}
+  const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='gmail_categories_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  URL.revokeObjectURL(url);setStatus('✅ Exported '+d.count+' categories');
+}
+
+async function importCats(e){
+  const file=e.target.files[0];if(!file)return;
+  const text=await file.text();
+  const el=document.getElementById('imp-res');
+  try{
+    const data=JSON.parse(text);
+    if(!data.categories){el.className='tres err';el.style.display='block';el.textContent='❌ Invalid file';return;}
+    const r=await fetch('/api/import-categories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const d=await r.json();
+    el.className='tres ok';el.style.display='block';el.textContent='✅ Imported '+d.imported+' categories';
+    await loadSenders();
+  }catch(err){el.className='tres err';el.style.display='block';el.textContent='❌ Failed to parse file';}
+  e.target.value='';
+}
+
+async function backupDB(){
+  const r=await fetch('/api/backup');
+  const d=await r.json();
+  if(d.error){alert('Backup failed: '+d.error);return;}
+  const bin=Uint8Array.from(atob(d.data),c=>c.charCodeAt(0));
+  const blob=new Blob([bin],{type:'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=d.filename;a.click();
+  URL.revokeObjectURL(url);setStatus('✅ Backup saved');
+}
+
+async function restoreDB(e){
+  const file=e.target.files[0];if(!file)return;
+  const el=document.getElementById('res-res');
+  if(!confirm('Restore database? Current data will be replaced.')) return;
+  const reader=new FileReader();
+  reader.onload=async function(ev){
+    const b64=btoa(String.fromCharCode(...new Uint8Array(ev.target.result)));
+    const r=await fetch('/api/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:b64})});
+    const d=await r.json();
+    el.className='tres '+(d.status==='ok'?'ok':'err');el.style.display='block';
+    el.textContent=d.status==='ok'?'✅ '+d.message:'❌ '+d.error;
+    if(d.status==='ok') await loadSenders();
+  };
+  reader.readAsArrayBuffer(file);e.target.value='';
+}
+
+async function loadLog(){
+  const el=document.getElementById('log-content');el.textContent='Loading...';
+  const r=await fetch('/api/error-log');
+  const d=await r.json();el.textContent=d.log||'No errors logged.';
+}
+
+loadSenders();
+loadSettingsUI();
+loadAccounts();
+</script>
+</body>
+</html>
